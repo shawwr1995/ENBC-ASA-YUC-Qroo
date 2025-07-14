@@ -1,0 +1,927 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="initial-scale=1,user-scalable=no,maximum-scale=1,width=device-width">
+        <meta name="mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <link rel="stylesheet" href="css/leaflet.css">
+        <link rel="stylesheet" href="css/L.Control.Layers.Tree.css">
+        <link rel="stylesheet" href="css/L.Control.Locate.min.css">
+        <link rel="stylesheet" href="css/qgis2web.css">
+        <link rel="stylesheet" href="css/fontawesome-all.min.css">
+        <link rel="stylesheet" href="css/leaflet.photon.css">
+        <style>
+        html, body, #map {
+            width: 100%;
+            height: 100%;
+            padding: 0;
+            margin: 0;
+        }
+        </style>
+        <title></title>
+    </head>
+    <body>
+        <div id="map">
+        </div>
+        <script src="js/qgis2web_expressions.js"></script>
+        <script src="js/leaflet.js"></script>
+        <script src="js/L.Control.Layers.Tree.min.js"></script>
+        <script src="js/L.Control.Locate.min.js"></script>
+        <script src="js/multi-style-layer.js"></script>
+        <script src="js/leaflet-svg-shape-markers.min.js"></script>
+        <script src="js/leaflet.rotatedMarker.js"></script>
+        <script src="js/leaflet.pattern.js"></script>
+        <script src="js/leaflet-hash.js"></script>
+        <script src="js/Autolinker.min.js"></script>
+        <script src="js/rbush.min.js"></script>
+        <script src="js/labelgun.min.js"></script>
+        <script src="js/labels.js"></script>
+        <script src="js/leaflet.photon.js"></script>
+        <script src="data/MunicipiosconCOAs_1.js"></script>
+        <script src="data/COAs_2.js"></script>
+        <script>
+        var highlightLayer;
+        function highlightFeature(e) {
+            highlightLayer = e.target;
+
+            if (e.target.feature.geometry.type === 'LineString' || e.target.feature.geometry.type === 'MultiLineString') {
+              highlightLayer.setStyle({
+                color: '#ffff00',
+              });
+            } else {
+              highlightLayer.setStyle({
+                fillColor: '#ffff00',
+                fillOpacity: 1
+              });
+            }
+            highlightLayer.openPopup();
+        }
+        var map = L.map('map', {
+            zoomControl:false, maxZoom:28, minZoom:1
+        }).fitBounds([[17.944902187098588,-91.02174533512925],[21.639825363703377,-84.53834583189757]]);
+        var hash = new L.Hash(map);
+        map.attributionControl.setPrefix('<a href="https://github.com/tomchadwin/qgis2web" target="_blank">qgis2web</a> &middot; <a href="https://leafletjs.com" title="A JS library for interactive maps">Leaflet</a> &middot; <a href="https://qgis.org">QGIS</a>');
+        var autolinker = new Autolinker({truncate: {length: 30, location: 'smart'}});
+        // remove popup's row if "visible-with-data"
+        function removeEmptyRowsFromPopupContent(content, feature) {
+         var tempDiv = document.createElement('div');
+         tempDiv.innerHTML = content;
+         var rows = tempDiv.querySelectorAll('tr');
+         for (var i = 0; i < rows.length; i++) {
+             var td = rows[i].querySelector('td.visible-with-data');
+             var key = td ? td.id : '';
+             if (td && td.classList.contains('visible-with-data') && feature.properties[key] == null) {
+                 rows[i].parentNode.removeChild(rows[i]);
+             }
+         }
+         return tempDiv.innerHTML;
+        }
+        // add class to format popup if it contains media
+		function addClassToPopupIfMedia(content, popup) {
+			var tempDiv = document.createElement('div');
+			tempDiv.innerHTML = content;
+			if (tempDiv.querySelector('td img')) {
+				popup._contentNode.classList.add('media');
+					// Delay to force the redraw
+					setTimeout(function() {
+						popup.update();
+					}, 10);
+			} else {
+				popup._contentNode.classList.remove('media');
+			}
+		}
+        var zoomControl = L.control.zoom({
+            position: 'topleft'
+        }).addTo(map);
+        L.control.locate({locateOptions: {maxZoom: 19}}).addTo(map);
+        var bounds_group = new L.featureGroup([]);
+        function setBounds() {
+        }
+        map.createPane('pane_OSMStandard_0');
+        map.getPane('pane_OSMStandard_0').style.zIndex = 400;
+        var layer_OSMStandard_0 = L.tileLayer('http://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            pane: 'pane_OSMStandard_0',
+            opacity: 1.0,
+            attribution: '<a href="https://www.openstreetmap.org/copyright">© OpenStreetMap contributors, CC-BY-SA</a>',
+            minZoom: 1,
+            maxZoom: 28,
+            minNativeZoom: 0,
+            maxNativeZoom: 19
+        });
+        layer_OSMStandard_0;
+        map.addLayer(layer_OSMStandard_0);
+        function pop_MunicipiosconCOAs_1(feature, layer) {
+            layer.on({
+                mouseout: function(e) {
+                    for (var i in e.target._eventParents) {
+                        if (typeof e.target._eventParents[i].resetStyle === 'function') {
+                            e.target._eventParents[i].resetStyle(e.target);
+                        }
+                    }
+                    if (typeof layer.closePopup == 'function') {
+                        layer.closePopup();
+                    } else {
+                        layer.eachLayer(function(feature){
+                            feature.closePopup()
+                        });
+                    }
+                },
+                mouseover: highlightFeature,
+            });
+            var popupContent = '<table>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['COV_'] !== null ? autolinker.link(String(feature.properties['COV_']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['COV_ID'] !== null ? autolinker.link(String(feature.properties['COV_ID']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['AREA'] !== null ? autolinker.link(String(feature.properties['AREA']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['PERIMETER'] !== null ? autolinker.link(String(feature.properties['PERIMETER']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['layer'] !== null ? autolinker.link(String(feature.properties['layer']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['path'] !== null ? autolinker.link(String(feature.properties['path']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        function style_MunicipiosconCOAs_1_0(feature) {
+            switch(String(feature.properties['NOMGEO'])) {
+                case 'Abalá':
+                    return {
+                pane: 'pane_MunicipiosconCOAs_1',
+                opacity: 1,
+                color: 'rgba(255,255,255,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 5.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(175,205,105,0.396078431372549)',
+                interactive: false,
+            }
+                    break;
+                case 'Cantamayec':
+                    return {
+                pane: 'pane_MunicipiosconCOAs_1',
+                opacity: 1,
+                color: 'rgba(255,255,255,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 5.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(14,240,127,0.4)',
+                interactive: false,
+            }
+                    break;
+                case 'Chacsinkín':
+                    return {
+                pane: 'pane_MunicipiosconCOAs_1',
+                opacity: 1,
+                color: 'rgba(255,255,255,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 5.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(117,81,200,0.4)',
+                interactive: false,
+            }
+                    break;
+                case 'Chikindzonot':
+                    return {
+                pane: 'pane_MunicipiosconCOAs_1',
+                opacity: 1,
+                color: 'rgba(255,255,255,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 5.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(216,70,54,0.4)',
+                interactive: false,
+            }
+                    break;
+                case 'Felipe Carrillo Puerto':
+                    return {
+                pane: 'pane_MunicipiosconCOAs_1',
+                opacity: 1,
+                color: 'rgba(255,255,255,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 5.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(205,162,62,0.4)',
+                interactive: false,
+            }
+                    break;
+                case 'Izamal':
+                    return {
+                pane: 'pane_MunicipiosconCOAs_1',
+                opacity: 1,
+                color: 'rgba(255,255,255,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 5.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(12,118,0,0.4)',
+                interactive: false,
+            }
+                    break;
+                case 'Mérida':
+                    return {
+                pane: 'pane_MunicipiosconCOAs_1',
+                opacity: 1,
+                color: 'rgba(255,255,255,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 5.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(201,69,216,0.4)',
+                interactive: false,
+            }
+                    break;
+                case 'Teabo':
+                    return {
+                pane: 'pane_MunicipiosconCOAs_1',
+                opacity: 1,
+                color: 'rgba(255,255,255,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 5.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(255,238,87,0.4)',
+                interactive: false,
+            }
+                    break;
+                case 'Yaxcabá':
+                    return {
+                pane: 'pane_MunicipiosconCOAs_1',
+                opacity: 1,
+                color: 'rgba(255,255,255,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 5.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(238,130,184,0.4)',
+                interactive: false,
+            }
+                    break;
+            }
+        }
+        function style_MunicipiosconCOAs_1_1(feature) {
+            switch(String(feature.properties['NOMGEO'])) {
+                case 'Abalá':
+                    return {
+                pane: 'pane_MunicipiosconCOAs_1',
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fillOpacity: 0,
+                interactive: false,
+            }
+                    break;
+                case 'Cantamayec':
+                    return {
+                pane: 'pane_MunicipiosconCOAs_1',
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fillOpacity: 0,
+                interactive: false,
+            }
+                    break;
+                case 'Chacsinkín':
+                    return {
+                pane: 'pane_MunicipiosconCOAs_1',
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fillOpacity: 0,
+                interactive: false,
+            }
+                    break;
+                case 'Chikindzonot':
+                    return {
+                pane: 'pane_MunicipiosconCOAs_1',
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fillOpacity: 0,
+                interactive: false,
+            }
+                    break;
+                case 'Felipe Carrillo Puerto':
+                    return {
+                pane: 'pane_MunicipiosconCOAs_1',
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fillOpacity: 0,
+                interactive: false,
+            }
+                    break;
+                case 'Izamal':
+                    return {
+                pane: 'pane_MunicipiosconCOAs_1',
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fillOpacity: 0,
+                interactive: false,
+            }
+                    break;
+                case 'Mérida':
+                    return {
+                pane: 'pane_MunicipiosconCOAs_1',
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fillOpacity: 0,
+                interactive: false,
+            }
+                    break;
+                case 'Teabo':
+                    return {
+                pane: 'pane_MunicipiosconCOAs_1',
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fillOpacity: 0,
+                interactive: false,
+            }
+                    break;
+                case 'Yaxcabá':
+                    return {
+                pane: 'pane_MunicipiosconCOAs_1',
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fillOpacity: 0,
+                interactive: false,
+            }
+                    break;
+            }
+        }
+        map.createPane('pane_MunicipiosconCOAs_1');
+        map.getPane('pane_MunicipiosconCOAs_1').style.zIndex = 401;
+        map.getPane('pane_MunicipiosconCOAs_1').style['mix-blend-mode'] = 'normal';
+        var layer_MunicipiosconCOAs_1 = new L.geoJson.multiStyle(json_MunicipiosconCOAs_1, {
+            attribution: '',
+            interactive: false,
+            dataVar: 'json_MunicipiosconCOAs_1',
+            layerName: 'layer_MunicipiosconCOAs_1',
+            pane: 'pane_MunicipiosconCOAs_1',
+            onEachFeature: pop_MunicipiosconCOAs_1,
+            styles: [style_MunicipiosconCOAs_1_0,style_MunicipiosconCOAs_1_1,]
+        });
+        bounds_group.addLayer(layer_MunicipiosconCOAs_1);
+        map.addLayer(layer_MunicipiosconCOAs_1);
+        function pop_COAs_2(feature, layer) {
+            layer.on({
+                mouseout: function(e) {
+                    for (var i in e.target._eventParents) {
+                        if (typeof e.target._eventParents[i].resetStyle === 'function') {
+                            e.target._eventParents[i].resetStyle(e.target);
+                        }
+                    }
+                    if (typeof layer.closePopup == 'function') {
+                        layer.closePopup();
+                    } else {
+                        layer.eachLayer(function(feature){
+                            feature.closePopup()
+                        });
+                    }
+                },
+                mouseover: highlightFeature,
+            });
+            var popupContent = '<table>\
+                    <tr>\
+                        <th scope="row">coa</th>\
+                        <td>' + (feature.properties['coa'] !== null ? autolinker.link(String(feature.properties['coa']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Ubicación</th>\
+                        <td>' + (feature.properties['Ubicación'] !== null ? autolinker.link(String(feature.properties['Ubicación']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Comunicación digital con la COA</th>\
+                        <td>' + (feature.properties['Comunicación digital con la COA'] !== null ? autolinker.link(String(feature.properties['Comunicación digital con la COA']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Contacto del estudiante de la ENBC</th>\
+                        <td>' + (feature.properties['Contacto del estudiante de la ENBC'] !== null ? autolinker.link(String(feature.properties['Contacto del estudiante de la ENBC']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Teléfono del estudiante</th>\
+                        <td>' + (feature.properties['Teléfono del estudiante'] !== null ? autolinker.link(String(feature.properties['Teléfono del estudiante']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Correo del estudiante</th>\
+                        <td>' + (feature.properties['Correo del estudiante'] !== null ? autolinker.link(String(feature.properties['Correo del estudiante']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Descripción de la COA</th>\
+                        <td>' + (feature.properties['Descripción de la COA'] !== null ? autolinker.link(String(feature.properties['Descripción de la COA']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        function style_COAs_2_0(feature) {
+            switch(String(feature.properties['coa'])) {
+                case 'Alamil / Abal Ha':
+                    return {
+                pane: 'pane_COAs_2',
+                shape: 'diamond',
+                radius: 8.8,
+                stroke: false,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(115,40,201,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'Casa Maya':
+                    return {
+                pane: 'pane_COAs_2',
+                shape: 'diamond',
+                radius: 8.8,
+                stroke: false,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(234,198,66,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'Comedor Zarigüeyas':
+                    return {
+                pane: 'pane_COAs_2',
+                shape: 'diamond',
+                radius: 8.8,
+                stroke: false,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(232,113,141,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'Escuela de Agricultura Ecológica U kiwik yits ka’an':
+                    return {
+                pane: 'pane_COAs_2',
+                shape: 'diamond',
+                radius: 8.8,
+                stroke: false,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(255,158,23,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'Kuchil kaab':
+                    return {
+                pane: 'pane_COAs_2',
+                shape: 'diamond',
+                radius: 8.8,
+                stroke: false,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(135,255,211,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'Kuxa\'an Lu\'um - Tierra Viva':
+                    return {
+                pane: 'pane_COAs_2',
+                shape: 'diamond',
+                radius: 8.8,
+                stroke: false,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(176,224,32,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'Mejen T\'aano\'ob Pequeñas voces A. C.':
+                    return {
+                pane: 'pane_COAs_2',
+                shape: 'diamond',
+                radius: 8.8,
+                stroke: false,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(203,49,142,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'Misioneros AC-Guardianes de las semillas':
+                    return {
+                pane: 'pane_COAs_2',
+                shape: 'diamond',
+                radius: 8.8,
+                stroke: false,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(215,151,255,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'Orquídeas de Chanchichimila':
+                    return {
+                pane: 'pane_COAs_2',
+                shape: 'diamond',
+                radius: 8.8,
+                stroke: false,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(255,220,145,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'PISU Soberanía Alimentaria Yaxcabá':
+                    return {
+                pane: 'pane_COAs_2',
+                shape: 'diamond',
+                radius: 8.8,
+                stroke: false,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(240,74,113,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'Túumben K\'óoben / Náaybi Lu\'um':
+                    return {
+                pane: 'pane_COAs_2',
+                shape: 'diamond',
+                radius: 8.8,
+                stroke: false,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(255,3,28,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'U sigil neek\'':
+                    return {
+                pane: 'pane_COAs_2',
+                shape: 'diamond',
+                radius: 8.8,
+                stroke: false,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(0,204,34,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'Comité de Producción Agroecológica Chicán':
+                    return {
+                pane: 'pane_COAs_2',
+                shape: 'diamond',
+                radius: 8.8,
+                stroke: false,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(164,113,88,1.0)',
+                interactive: true,
+            }
+                    break;
+            }
+        }
+        function style_COAs_2_1(feature) {
+            switch(String(feature.properties['coa'])) {
+                case 'Alamil / Abal Ha':
+                    return {
+                pane: 'pane_COAs_2',
+                shape: 'diamond',
+                radius: 6.4,
+                opacity: 1,
+                color: 'rgba(255,255,255,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(115,40,201,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'Casa Maya':
+                    return {
+                pane: 'pane_COAs_2',
+                shape: 'diamond',
+                radius: 6.4,
+                opacity: 1,
+                color: 'rgba(255,255,255,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(234,198,66,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'Comedor Zarigüeyas':
+                    return {
+                pane: 'pane_COAs_2',
+                shape: 'diamond',
+                radius: 6.4,
+                opacity: 1,
+                color: 'rgba(255,255,255,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(232,113,141,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'Escuela de Agricultura Ecológica U kiwik yits ka’an':
+                    return {
+                pane: 'pane_COAs_2',
+                shape: 'diamond',
+                radius: 6.4,
+                opacity: 1,
+                color: 'rgba(255,255,255,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(255,158,23,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'Kuchil kaab':
+                    return {
+                pane: 'pane_COAs_2',
+                shape: 'diamond',
+                radius: 6.4,
+                opacity: 1,
+                color: 'rgba(255,255,255,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(135,255,211,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'Kuxa\'an Lu\'um - Tierra Viva':
+                    return {
+                pane: 'pane_COAs_2',
+                shape: 'diamond',
+                radius: 6.4,
+                opacity: 1,
+                color: 'rgba(255,255,255,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(176,224,32,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'Mejen T\'aano\'ob Pequeñas voces A. C.':
+                    return {
+                pane: 'pane_COAs_2',
+                shape: 'diamond',
+                radius: 6.4,
+                opacity: 1,
+                color: 'rgba(255,255,255,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(203,49,142,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'Misioneros AC-Guardianes de las semillas':
+                    return {
+                pane: 'pane_COAs_2',
+                shape: 'diamond',
+                radius: 6.4,
+                opacity: 1,
+                color: 'rgba(255,255,255,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(215,151,255,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'Orquídeas de Chanchichimila':
+                    return {
+                pane: 'pane_COAs_2',
+                shape: 'diamond',
+                radius: 6.4,
+                opacity: 1,
+                color: 'rgba(255,255,255,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(255,220,145,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'PISU Soberanía Alimentaria Yaxcabá':
+                    return {
+                pane: 'pane_COAs_2',
+                shape: 'diamond',
+                radius: 6.4,
+                opacity: 1,
+                color: 'rgba(255,255,255,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(240,74,113,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'Túumben K\'óoben / Náaybi Lu\'um':
+                    return {
+                pane: 'pane_COAs_2',
+                shape: 'diamond',
+                radius: 6.4,
+                opacity: 1,
+                color: 'rgba(255,255,255,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(255,3,28,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'U sigil neek\'':
+                    return {
+                pane: 'pane_COAs_2',
+                shape: 'diamond',
+                radius: 6.4,
+                opacity: 1,
+                color: 'rgba(255,255,255,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(0,204,34,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'Comité de Producción Agroecológica Chicán':
+                    return {
+                pane: 'pane_COAs_2',
+                shape: 'diamond',
+                radius: 6.4,
+                opacity: 1,
+                color: 'rgba(255,255,255,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(164,113,88,1.0)',
+                interactive: true,
+            }
+                    break;
+            }
+        }
+        map.createPane('pane_COAs_2');
+        map.getPane('pane_COAs_2').style.zIndex = 402;
+        map.getPane('pane_COAs_2').style['mix-blend-mode'] = 'normal';
+        var layer_COAs_2 = new L.geoJson.multiStyle(json_COAs_2, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_COAs_2',
+            layerName: 'layer_COAs_2',
+            pane: 'pane_COAs_2',
+            onEachFeature: pop_COAs_2,
+            pointToLayers: [function (feature, latlng) {
+                var context = {
+                    feature: feature,
+                    variables: {}
+                };
+                return L.shapeMarker(latlng, style_COAs_2_0(feature));
+            },function (feature, latlng) {
+                var context = {
+                    feature: feature,
+                    variables: {}
+                };
+                return L.shapeMarker(latlng, style_COAs_2_1(feature));
+            },
+        ]});
+        bounds_group.addLayer(layer_COAs_2);
+        map.addLayer(layer_COAs_2);
+        var overlaysTree = [
+            {label: 'COA\'s<br /><table><tr><td style="text-align: center;"><img src="legend/COAs_2_AlamilAbalHa0.png" /></td><td>Alamil / Abal Ha</td></tr><tr><td style="text-align: center;"><img src="legend/COAs_2_CasaMaya1.png" /></td><td>Casa Maya</td></tr><tr><td style="text-align: center;"><img src="legend/COAs_2_ComedorZarigüeyas2.png" /></td><td>Comedor Zarigüeyas</td></tr><tr><td style="text-align: center;"><img src="legend/COAs_2_EscueladeAgriculturaEcológicaUkiwikyitskaan3.png" /></td><td>Escuela de Agricultura Ecológica U kiwik yits ka’an</td></tr><tr><td style="text-align: center;"><img src="legend/COAs_2_Kuchilkaab4.png" /></td><td>Kuchil kaab</td></tr><tr><td style="text-align: center;"><img src="legend/COAs_2_KuxaanLuumTierraViva5.png" /></td><td>Kuxa\'an Lu\'um - Tierra Viva</td></tr><tr><td style="text-align: center;"><img src="legend/COAs_2_MejenTaanoobPequeñasvocesAC6.png" /></td><td>Mejen T\'aano\'ob Pequeñas voces A. C.</td></tr><tr><td style="text-align: center;"><img src="legend/COAs_2_MisionerosACGuardianesdelassemillas7.png" /></td><td>Misioneros AC-Guardianes de las semillas</td></tr><tr><td style="text-align: center;"><img src="legend/COAs_2_OrquídeasdeChanchichimila8.png" /></td><td>Orquídeas de Chanchichimila</td></tr><tr><td style="text-align: center;"><img src="legend/COAs_2_PISUSoberaníaAlimentariaYaxcabá9.png" /></td><td>PISU Soberanía Alimentaria Yaxcabá</td></tr><tr><td style="text-align: center;"><img src="legend/COAs_2_TúumbenKóobenNáaybiLuum10.png" /></td><td>Túumben K\'óoben / Náaybi Lu\'um</td></tr><tr><td style="text-align: center;"><img src="legend/COAs_2_Usigilneek11.png" /></td><td>U sigil neek\'</td></tr><tr><td style="text-align: center;"><img src="legend/COAs_2_ComitédeProducciónAgroecológicaChicán12.png" /></td><td>Comité de Producción Agroecológica Chicán</td></tr></table>', layer: layer_COAs_2},
+            {label: 'Municipios con COA\'s<br /><table><tr><td style="text-align: center;"><img src="legend/MunicipiosconCOAs_1_Abalá0.png" /></td><td>Abalá</td></tr><tr><td style="text-align: center;"><img src="legend/MunicipiosconCOAs_1_Cantamayec1.png" /></td><td>Cantamayec</td></tr><tr><td style="text-align: center;"><img src="legend/MunicipiosconCOAs_1_Chacsinkín2.png" /></td><td>Chacsinkín</td></tr><tr><td style="text-align: center;"><img src="legend/MunicipiosconCOAs_1_Chikindzonot3.png" /></td><td>Chikindzonot</td></tr><tr><td style="text-align: center;"><img src="legend/MunicipiosconCOAs_1_FelipeCarrilloPuerto4.png" /></td><td>Felipe Carrillo Puerto</td></tr><tr><td style="text-align: center;"><img src="legend/MunicipiosconCOAs_1_Izamal5.png" /></td><td>Izamal</td></tr><tr><td style="text-align: center;"><img src="legend/MunicipiosconCOAs_1_Mérida6.png" /></td><td>Mérida</td></tr><tr><td style="text-align: center;"><img src="legend/MunicipiosconCOAs_1_Teabo7.png" /></td><td>Teabo</td></tr><tr><td style="text-align: center;"><img src="legend/MunicipiosconCOAs_1_Yaxcabá8.png" /></td><td>Yaxcabá</td></tr></table>', layer: layer_MunicipiosconCOAs_1},
+            {label: "OSM Standard", layer: layer_OSMStandard_0},]
+        var lay = L.control.layers.tree(null, overlaysTree,{
+            //namedToggle: true,
+            //selectorBack: false,
+            //closedSymbol: '&#8862; &#x1f5c0;',
+            //openedSymbol: '&#8863; &#x1f5c1;',
+            //collapseAll: 'Collapse all',
+            //expandAll: 'Expand all',
+            collapsed: true,
+        });
+        lay.addTo(map);
+        setBounds();
+        resetLabels([layer_MunicipiosconCOAs_1]);
+        map.on("zoomend", function(){
+            resetLabels([layer_MunicipiosconCOAs_1]);
+        });
+        map.on("layeradd", function(){
+            resetLabels([layer_MunicipiosconCOAs_1]);
+        });
+        map.on("layerremove", function(){
+            resetLabels([layer_MunicipiosconCOAs_1]);
+        });
+        </script>
+    </body>
+</html>
